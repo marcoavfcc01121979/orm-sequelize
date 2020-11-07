@@ -109,3 +109,227 @@ static async restaurarPessoa(req, res) {
 agora precisamos criar uma rota para esse metodo dentro de pessoasRouter.js
 router.post('/pessoas/:id/restaurar', PessoaController.restaurarPessoa);
 
+- Para deixar a interface mais limpa, o cliente gostaria que na lista de
+Pessoas, por Padrão, fossem exibidos somente os usuarios ativos.
+
+'use strict';
+const {
+  Model
+} = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class Pessoas extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      // o sequelize ate cria o nome do foreignKey mais ele utiliza o seu padrao.
+      Pessoas.hasMany(models.Turmas, {
+        foreignKey: 'docente_id'
+      })
+      Pessoas.hasMany(models.Matriculas, {
+        foreignKey: 'estudante_id'
+      })
+    }
+  };
+  Pessoas.init({
+    nome: DataTypes.STRING,
+    ativo: DataTypes.BOOLEAN,
+    email: DataTypes.STRING,
+    role: DataTypes.STRING
+  }, {
+    sequelize,
+    paranoid: true,
+   /* defaultScope: {
+      where: { ativo: true }
+    }, */
+    modelName: 'Pessoas',
+  });
+  return Pessoas;
+};
+
+podemos ter varios outros scopo para sobreescrever o scopo Padrão
+ex:. 
+'use strict';
+const {
+  Model
+} = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class Pessoas extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      // o sequelize ate cria o nome do foreignKey mais ele utiliza o seu padrao.
+      Pessoas.hasMany(models.Turmas, {
+        foreignKey: 'docente_id'
+      })
+      Pessoas.hasMany(models.Matriculas, {
+        foreignKey: 'estudante_id'
+      })
+    }
+  };
+  Pessoas.init({
+    nome: DataTypes.STRING,
+    ativo: DataTypes.BOOLEAN,
+    email: DataTypes.STRING,
+    role: DataTypes.STRING
+  }, {
+    sequelize,
+    paranoid: true,
+    defaultScope: {
+      where: { ativo: true }
+    },
+    /* scopes: {
+      todos: { where: {} }
+    }, */
+    modelName: 'Pessoas',
+  });
+  return Pessoas;
+};
+
+agora vamos para controller pessoa para adiciona um novo metodo
+
+static async pegaPessoasAtivas(req, res) {
+    try{
+      const pessoasAtivas = await database.Pessoas.findAll()
+      return res.status(200).json(pessoasAtivas);
+    }catch(error) {
+      return res.status(500).json(error.message)
+    }
+  }
+
+agora vamos adiciona as rotas dentro de routes para pegar esses metodos
+router.get('/pessoas', PessoaController.pegaPessoasAtivas);
+
+agora vamos criar o metodo que sobrescreve o scopeDefault
+
+static async pegarTodasAsPessoas(req, res) {
+    try{
+      const todasAsPessoas = await database.Pessoas.scope('todos').findAll()
+      return res.status(200).json(todasAsPessoas)
+    }catch(error) {
+      return res.status(500).json(error.message)
+    }
+  }
+
+agora vamos criar a rota que sobrescreve o scopeDefault
+router.get('/pessoas/todas', PessoaController.pegarTodasAsPessoas);
+
+- Foram percebidos algumas falhas de validação dos formularios por parte
+do front-end, o que resultou em dados de e-mail inválidos no banco. È desejavel 
+que essa validação não seja responsabilidade exclusiva do front.
+
+'use strict';
+const {
+  Model
+} = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class Pessoas extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      // o sequelize ate cria o nome do foreignKey mais ele utiliza o seu padrao.
+      Pessoas.hasMany(models.Turmas, {
+        foreignKey: 'docente_id'
+      })
+      Pessoas.hasMany(models.Matriculas, {
+        foreignKey: 'estudante_id'
+      })
+    }
+  };
+  Pessoas.init({
+    nome: DataTypes.STRING,
+    ativo: DataTypes.BOOLEAN,
+    /* email: {
+      type: DataTypes.STRING,
+      validate: {
+        isEmail: {
+          args: true,
+          msg: 'dado do tipo e-email inválidos'
+        }
+      }
+    }, */
+    role: DataTypes.STRING
+  }, {
+    sequelize,
+    paranoid: true,
+    defaultScope: {
+      where: { ativo: true }
+    },
+    scopes: {
+      todos: { where: {} }
+    },
+    modelName: 'Pessoas',
+  });
+  return Pessoas;
+};
+
+criando uma funçao validadora mais especifica para nome na 
+Tabela Pessoas.
+
+'use strict';
+const {
+  Model
+} = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class Pessoas extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      // o sequelize ate cria o nome do foreignKey mais ele utiliza o seu padrao.
+      Pessoas.hasMany(models.Turmas, {
+        foreignKey: 'docente_id'
+      })
+      Pessoas.hasMany(models.Matriculas, {
+        foreignKey: 'estudante_id'
+      })
+    }
+  };
+  Pessoas.init({
+    /* nome: {
+      type: DataTypes.STRING,
+      validate: {
+        funcaoValidadora: function(dado) {
+          if(dado.length < 3) 
+            throw new Error('O campo nome tem que ter mais de 3 caracteres.');
+        }
+      }
+    }, */
+    ativo: DataTypes.BOOLEAN,
+    email: {
+      type: DataTypes.STRING,
+      validate: {
+        isEmail: {
+          args: true,
+          msg: 'dado do tipo e-email inválidos'
+        }
+      }
+    },
+    role: DataTypes.STRING
+  }, {
+    sequelize,
+    paranoid: true,
+    defaultScope: {
+      where: { ativo: true }
+    },
+    scopes: {
+      todos: { where: {} }
+    },
+    modelName: 'Pessoas',
+  });
+  return Pessoas;
+};
