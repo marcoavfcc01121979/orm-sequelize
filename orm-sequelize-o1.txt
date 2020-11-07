@@ -1,0 +1,111 @@
+O cliente não gostaria que registros importantes do sistema, como as Pessoas, sejam apagados definitivamente do banco de dados.
+
+Vou coloca essa opçoes para todos os Models ou seja vou trabalhar com essa posibilidades para todas os Modelos.
+
+tenho que adiciona o objeto { paranoid: true }
+
+ 
+
+'use strict';
+
+const {
+
+Model
+
+} = require('sequelize');
+
+module.exports = (sequelize, DataTypes) => {
+
+class Matriculas extends Model {
+
+/**
+
+* Helper method for defining associations.
+
+* This method is not a part of Sequelize lifecycle.
+
+* The `models/index` file will call this method automatically.
+
+*/
+
+static associate(models) {
+
+// define association here
+
+Matriculas.belongsTo(models.Pessoas, {
+
+foreignKey: 'estudante_id'
+
+})
+
+Matriculas.belongsTo(models.Turmas, {
+
+foreignKey: 'turma_id'
+
+})
+
+}
+
+};
+
+Matriculas.init({
+
+status: DataTypes.STRING
+
+}, {
+
+sequelize,
+**paranoid: true**
+modelName: 'Matriculas',
+
+});
+
+return Matriculas;
+
+};
+
+eu adicionei o paranoid: true dentro do modelo **Turmas, Matriculas, Pessoas e Niveis**
+
+para eu fazer o delete suave ou seja esconder a deleçao das pessoas na tabelas Pessoas eu peciso adiciona o campo colum dentro da tabelas pessoas
+
+1) criar um arquivo de deleção dentro de migrate onde é onde eu adiciono a coluna.
+2) passo adiciona o deletedAt ao lado de Pessoas e deixar apenas um unico campo
+'use strict';
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.addColumn('Pessoas', **'deletedAt'**,  {
+      allowNull: true,
+      type: Sequelize.DATE
+    });
+  },
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.removeColumn('Pessoas', 'deletedAt');
+  }
+};
+
+3) passo fazer a mesma coisa para todas as outras tabelas.
+4) rotar o comando de migração
+npx sequelize-cli db:migrate 
+
+5) soft delete so faz é vingir que foi feita uma deleção no banco de dados
+podemos recuperar a delecao atraves dos controllers
+
+6) Agora dentro do controller no arquivo PessoaController.js podemos 
+adicionar o metodo que restaura o arquivo que foi deletado.
+
+depois do metodo deletaPessoa adicionamos o arquivo que faz a restauração do 
+metodo.
+
+static async restaurarPessoa(req, res) {
+    const { id } = req.params;
+    try { 
+      await database.Pessoas.restore({ where: { id: Number(id) } });
+      return res.status(200).json({ messagem: `id: ${id} restaurado com sucesso.` })
+    } catch(error) {
+      return res.status(500).json(error.message);  
+    }
+  }
+
+agora precisamos criar uma rota para esse metodo dentro de pessoasRouter.js
+router.post('/pessoas/:id/restaurar', PessoaController.restaurarPessoa);
+
