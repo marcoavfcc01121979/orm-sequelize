@@ -113,13 +113,40 @@ class PessoaController {
     }
   }
   static async deletaMatricula(req, res) {
-    const { estudanteId, matriculaId } = req.params;
+    const { matriculaId } = req.params;
     try {
       await database.Matriculas.destroy({ 
         where: { 
           id: Number(matriculaId)
       }})
       return res.status(200).json({ mensagem: `id: ${matriculaId} deletado com sucesso` });
+    } catch(error) {
+      return res.status(500).json(error.message);
+    }
+  }
+  static async pegaMatricula(req, res) {
+    const { estudanteId} = req.params;
+    try {
+      const pessoa = await database.Pessoas.findOne({ where: { id: Number(estudanteId) } });
+      const matriculas = await pessoa.getAulasMatriculadas()
+      return res.status(200).json(matriculas);
+    } catch(error) {
+      return res.status(500).json(error.message);
+    }
+  }
+
+  static async pegaMatriculasPorTurma(req, res) {
+    const { turmaId } = req.params;
+    try {
+      const todasAsMatriculas = await database.Matriculas.findAndCountAll({
+        where: {
+          turma_id: Number(turmaId),
+          status: 'confirmado'
+        },
+        limit: 1,
+        order: [['estudante_id', 'ASC']]
+      })
+      return res.status(200).json(todasAsMatriculas);
     } catch(error) {
       return res.status(500).json(error.message);
     }
