@@ -478,3 +478,67 @@ static async pegaMatriculasPorTurma(req, res) {
 Agora demos criar uma rota para esse metodo pegaMatriculasPorTurma.
 router.get('/pessoas/matricula/:turmaId/confirmado', PessoaController.pegaMatriculasPorTurma);
 
+vamos criar dentro PessoasController um novo método pegaTurmasLotadas
+onde traz as turmas lotadas com a quantidade >= 2 no filtro.
+
+static async pegaTurmaLotadas(req, res) {
+    const lotacaoTurma = 2;
+    try {
+      const turmasLotadas = await database.Matriculas
+        .findAndCountAll({
+          where: {
+            status: 'confirmado'
+          },
+          attributes: ['turma_id'],
+          group: ['turma_id'],
+          having: Sequelize.literal(`count(turma_id) >= ${lotacaoTurma}`)
+        })
+        return res.status(200).json(turmasLotadas.count);
+    } catch(error) {
+      return res.status(500).json(error.message);
+    }
+  }
+
+  vamos criar no routerPessoas a rota para pegar as turmas que estao lotadas com 2 pessoas.
+  router.get('/pessoas/matriculas/lotada', PessoaController.pegaTurmaLotadas);
+
+  O cliente gostaria que, uma vez que o cadastro de um estudante fossem
+  desativado, todas as matrículas relativas a este estudante automaticamente
+  passarem a constar "canceladas".
+
+  vamos criar o metodo no arquivo PessoasController.js
+  static async cancelaPessoas(req, res) {
+    const { estudanteId } = req.params;
+    try {
+      await database.Pessoas
+        .update({ ativo: false }, { where: { id: Number(estudanteId) } })
+      await database.Matriculas
+        .update({ status: 'cancelado' }, { where: { estudante_id: Number(estudanteId) } })
+      return res.status(200).json({ message: `matriculas ref. estudante ${estudanteId} canceladas` })
+    } catch(error) {
+      return res.status(500).json(error.message);
+    }
+  }
+
+agora vamos criar uma rota do tipo post
+router.post('/pessoas/:estudanteId/cancela', PessoaController.cancelaPessoas);
+
+usando transacoes
+
+static async cancelaPessoas(req, res) {
+    const { estudanteId } = req.params;
+    try {
+      database.sequelize.transaction(async transacao => {
+        await database.Pessoas
+          .update({ ativo: false }, { where: { id: Number(estudanteId) } }, {
+            transaction: transacao })
+        await database.Matriculas
+          .update({ status: 'cancelado' }, { where: { estudante_id: Number(estudanteId) } }, 
+          { transaction: transacao })
+        return res.status(200).json({ message: `matriculas ref. estudante ${estudanteId} canceladas` })
+      })
+    } catch(error) {
+      return res.status(500).json(error.message);
+    }
+  }
+

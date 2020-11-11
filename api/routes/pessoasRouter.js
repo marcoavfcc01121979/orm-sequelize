@@ -9,6 +9,8 @@ router.get('/pessoas/:id', PessoaController.pegaUmaPessoa);
 router.get('/pessoas/:estudanteId/matriculas/:matriculaId', PessoaController.pegaUmaMatricula);
 router.get('/pessoas/:estudanteId/matricula', PessoaController.pegaMatricula);
 router.get('/pessoas/matriculas/:turmaId/confirmadas', PessoaController.pegaMatriculasPorTurma);
+router.get('/pessoas/matriculas/lotada', PessoaController.pegaTurmaLotadas);
+router.post('/pessoas/:estudanteId/cancela', PessoaController.cancelaPessoas);
 router.post('/pessoas', PessoaController.criaPessoa);
 router.post('/pessoas/:estudanteId/matriculas', PessoaController.criaMatricula);
 router.post('/pessoas/:id/restaurar', PessoaController.restaurarPessoa);
